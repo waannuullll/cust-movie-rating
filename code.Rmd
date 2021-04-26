@@ -1,0 +1,78 @@
+---
+title: "Customer Movie Rating Clustering Using K-Means Clustering"
+author: "Ikhwanul Muslimin"
+date: "4/26/2021"
+output: html_document
+---
+
+# Masalah
+Diberikan file customer_movie_rating.csv, lakukan segmentasi pelanggan dengan menggunakan K-Means Clustering, kemudian pilih nilai k terbaik dan analisa hasil setiap klaster.
+
+# Solusi
+
+## Load Library dan Data
+```{r, message=FALSE, warning=FALSE}
+library(NbClust)
+library(factoextra)
+
+df = read.csv('customer_movie_rating.csv')
+```
+
+## Eksplorasi Data
+
+Bentuk data:
+```{r, echo=FALSE}
+head(df)
+```
+
+Dengan dimensi:
+```{r, echo=FALSE}
+dim(df)
+```
+
+Informasi umum data:
+```{r, echo=FALSE}
+summary(df)
+```
+
+Dari hasil di atas, dapat dilihat bahwa data yang kita miliki merupakan rating yang diberikan pelanggan untuk setiap genre film dalam sebuah website. Terdapat **5 genre film** yang akan ditinjau: Horror, Romcom, Action, Comedy, dan Fantasy di mana masing-masingnya memiliki nilai yang berada pada rentang **0 - 100**. Dalam kasus ini, data kita memiliki satuan yang sama, sehingga **tidak perlu melakukan penskalaan** lagi.
+
+## Mencari Nilai $k$ yang Optimal
+```{r, echo=FALSE}
+nbclust_out <- NbClust(
+  data = df,
+  distance = "euclidean",
+  min.nc = 2,
+  max.nc = 5,
+  method = "kmeans"
+)
+```
+
+Kedua hasil plot Hubert index dan D index menunjukkan bahwa pada jumlah klasternya adalah 3 terjadi perubahan kedua nilai indeks tersebut secara signifikan, ini menunjukkan bahwa 3 adalah jumlah klaster yang optimal untuk kasus ini.
+
+```{r, echo=FALSE}
+nbclust_plot <- data.frame(clusters = nbclust_out$Best.nc[1, ])
+nbclust_plot <- subset(nbclust_plot, clusters >= 2 & clusters <= 5)
+
+ggplot(nbclust_plot) +
+  aes(x = clusters) +
+  geom_histogram(bins = 30L, fill = "#0c4c8a") +
+  labs(x = "Jumlah klaster", y = "Frekuensi", title = "Jumlah klaster optimal") +
+  theme_minimal()
+```
+
+Dan juga dengan melihat frekuensi setiap jumlah klaster pada 30 indeks, 3 adalah jumlah klaster yang paling optimal. Sehingga, untuk ke depannya akan dipilih $k = 3$.
+
+## K-Means Clustering dengan $k=3$
+Berikut adalah visualisasi *clustering* yang paling optimal untuk kasus di atas:
+```{r, echo=FALSE}
+model1 = kmeans(df, centers=3)
+fviz_cluster(model1, data = df)
+```
+
+Salah satu parameter yang digunakan untuk menentukan kualitas dari hasil *K-Means Clustering* ini adalah perbandingan antara BSS (*Between Sum of Squares*) dan TSS (*Total Sum of Squares*),
+$$ \frac{BSS}{TSS}\times 100 $$
+Untuk kasus $k=3$, diperoleh kualitasnya sebesar:
+```{r, echo=FALSE}
+model1$betweenss*100/model1$totss
+```
